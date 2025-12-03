@@ -1,8 +1,6 @@
 <?php
-// class/Database.php
-
 class Database {
-    public $conn;
+    public $connection;
 
     public function __construct() {
         $this->connect();
@@ -10,21 +8,22 @@ class Database {
 
     public function connect() {
         try {
-            $this->conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->exec("SET NAMES utf8mb4");
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $this->connection = new PDO($dsn, DB_USER, DB_PASS);
+            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             die("Koneksi database gagal: " . $e->getMessage());
         }
-        return $this->conn;
+        return $this->connection;
     }
 
     public function query($sql, $params = []) {
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->connection->prepare($sql);
         return $stmt->execute($params) ? $stmt : false;
     }
 
-    public function getConnection() {
-        $this->conn = null;
+    public function close() {
+        $this->connection = null;
     }
 }

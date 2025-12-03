@@ -1,102 +1,76 @@
 <?php
-// class/Product.php
-
 class Product {
-    // PROPERTIES
+    public $nama;
+    public $harga;
+    public $kategori;
+    public $stok;
+
+    protected $id;
     protected $db;
-    protected $id;              // ID protected agar tidak sembarangan diubah
 
-    public $name;
-    public $category;
-    public $price;
-    public $stock;
-    public $image_path;
-    public $status;
-
-    // CONSTRUCTOR
-    public function __construct($db) {
-        $this->db = $db;
+    public function __construct() {
+        $this->db = new Database();
     }
 
-    // Getter untuk ID
     public function getId() {
         return $this->id;
     }
 
-    // Setter untuk ID (opsional, jika ingin set manual)
-    protected function setId($id) {
-        $this->id = $id;
-    }
+    public function setById($id) {
+        $sql = "SELECT * FROM items WHERE id = :id LIMIT 1";
+        $stmt = $this->db->query($sql, ['id' => $id]);
+        $data = $stmt->fetch();
 
-    // SAVE: Insert jika id kosong, Update jika id ada
-    public function save() {
-        if (empty($this->id)) {
-            // INSERT
-            $sql = "INSERT INTO products (name, category, price, stock, image_path, status) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
-            $result = $this->db->query($sql, [
-                $this->name,
-                $this->category,
-                $this->price,
-                $this->stock,
-                $this->image_path,
-                $this->status
-            ]);
-
-            if ($result) {
-                // Ambil ID terakhir yang diinsert
-                $this->id = $this->db->conn->lastInsertId();
-            }
-            return $result;
-        } else {
-            // UPDATE
-            $sql = "UPDATE products 
-                    SET name=?, category=?, price=?, stock=?, image_path=?, status=? 
-                    WHERE id=?";
-            return $this->db->query($sql, [
-                $this->name,
-                $this->category,
-                $this->price,
-                $this->stock,
-                $this->image_path,
-                $this->status,
-                $this->id
-            ]);
+        if ($data) {
+            $this->id       = $data['id'];
+            $this->nama     = $data['nama'];
+            $this->harga    = $data['harga'];
+            $this->kategori = $data['kategori'];
+            $this->stok     = $data['stok'];
+            return true;
         }
+        return false;
     }
 
-    // Ambil semua produk
     public function getAll() {
-        $sql = "SELECT * FROM products ORDER BY id DESC";
+        $sql = "SELECT * FROM items ORDER BY id ASC";
         $stmt = $this->db->query($sql);
-        return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        return $stmt->fetchAll();
     }
 
-    // Ambil produk berdasarkan ID
-    public function getById($id) {
-        $sql = "SELECT * FROM products WHERE id = ?";
-        $stmt = $this->db->query($sql, [$id]);
-        $result = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
-
-        if ($result) {
-            $this->id = $result['id'];
-            $this->name = $result['name'];
-            $this->category = $result['category'];
-            $this->price = $result['price'];
-            $this->stock = $result['stock'];
-            $this->image_path = $result['image_path'];
-            $this->status = $result['status'];
+    public function save() {
+        if (isset($this->id)) {
+            $sql = "UPDATE items SET nama=:nama, harga=:harga, kategori=:kategori, stok=:stok WHERE id=:id";
+            $params = [
+                'nama' => $this->nama,
+                'harga' => $this->harga,
+                'kategori' => $this->kategori,
+                'stok' => $this->stok,
+                'id' => $this->id
+            ];
+        } else {
+            $sql = "INSERT INTO items (nama, harga, kategori, stok) VALUES (:nama, :harga, :kategori, :stok)";
+            $params = [
+                'nama' => $this->nama,
+                'harga' => $this->harga,
+                'kategori' => $this->kategori,
+                'stok' => $this->stok
+            ];
         }
 
-        return $result;
+        $stmt = $this->db->query($sql, $params);
+        if ($stmt && !isset($this->id)) {
+            $this->id = $this->db->connection->lastInsertId();
+        }
+        return (bool)$stmt;
     }
 
-    // Hapus produk
-    public function delete() {
-        if (!empty($this->id)) {
-            $sql = "DELETE FROM products WHERE id=?";
-            return $this->db->query($sql, [$this->id]);
+    public function remove() {
+        if (isset($this->id)) {
+            $sql = "DELETE FROM items WHERE id = :id";
+            return $this->db->query($sql, ['id' => $this->id]) !== false;
         }
         return false;
     }
 }
+
